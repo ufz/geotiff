@@ -7,3 +7,8 @@
 ###############################################################################
 
 ADD_LIBRARY(xtiff STATIC xtiff.c)
+
+INSTALL( TARGETS xtiff
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib )
