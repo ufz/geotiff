@@ -20,12 +20,10 @@
 #define HAVE_STRING_H 1
 #endif
 
-/* Define if you have the <strings.h> header file.  */
-#ifndef HAVE_STRINGS_H
-#define HAVE_STRINGS_H 1
-#endif
-
 /* Build as DLL */
 #define BUILD_AS_DLL      1
+
+/* Turn off TOWGS84 if necessary */
+/* #define GEO_NORMALIZE_DISABLE_TOWGS84 1 */
 
 #endif /* ndef GEO_CONFIG_H */

@@ -76,15 +76,18 @@ main(int argc, char* argv[])
 	uint32 diroff = 0;
 	TIFF* in;
 	TIFF* out;
-	const char* mode = "w";
+	char mode[10];
+	char* mp = mode;
 	int c;
 	extern int optind;
 	extern char* optarg;
 
-	while ((c = getopt(argc, argv, "c:f:l:o:p:r:w:e:g:4:aistd")) != -1)
+	*mp++ = 'w';
+	*mp = '\0';
+	while ((c = getopt(argc, argv, "c:f:l:o:p:r:w:e:g:4:aistd8BLMC")) != -1)
 		switch (c) {
 		case 'a':		/* append to output */
-			mode = "a";
+			mode[0] = 'a';
 			break;
 		case 'd':		/* down cast 8bit to 4bit */
                         convert_8_to_4 = 1;
@@ -141,12 +144,28 @@ main(int argc, char* argv[])
 			outtiled = TRUE;
 			deftilewidth = atoi(optarg);
 			break;
+		case 'B':
+			*mp++ = 'b'; *mp = '\0';
+			break;
+		case 'L':
+			*mp++ = 'l'; *mp = '\0';
+			break;
+		case 'M':
+			*mp++ = 'm'; *mp = '\0';
+			break;
+		case 'C':
+			*mp++ = 'c'; *mp = '\0';
+			break;
+		case '8':
+			*mp++ = '8'; *mp = '\0';
+			break;
 		case '?':
 			usage();
 			/*NOTREACHED*/
 		}
 	if (argc - optind < 2)
 		usage();
+        printf( "mode=%s\n", mode);
 	out = TIFFOpen(argv[argc-1], mode);
 	if (out == NULL)
 		return (-2);
@@ -185,6 +204,7 @@ static void ApplyWorldFile(const char *worldfilename, TIFF *out)
 {
     FILE	*tfw;
     double	pixsize[3], xoff, yoff, tiepoint[6], x_rot, y_rot;
+    int         success;
 
     /* 
      * Read the world file.  Note we currently ignore rotational coefficients!
@@ -196,14 +216,20 @@ static void ApplyWorldFile(const char *worldfilename, TIFF *out)
         return;
     }
 
-    fscanf( tfw, "%lf", pixsize + 0 );
-    fscanf( tfw, "%lf", &y_rot );
-    fscanf( tfw, "%lf", &x_rot );
-    fscanf( tfw, "%lf", pixsize + 1 );
-    fscanf( tfw, "%lf", &xoff );
-    fscanf( tfw, "%lf", &yoff );
+    success  = fscanf( tfw, "%lf", pixsize + 0 );
+    success &= fscanf( tfw, "%lf", &y_rot );
+    success &= fscanf( tfw, "%lf", &x_rot );
+    success &= fscanf( tfw, "%lf", pixsize + 1 );
+    success &= fscanf( tfw, "%lf", &xoff );
+    success &= fscanf( tfw, "%lf", &yoff );
 
     fclose( tfw );
+
+    if( success != 1 )
+    {
+        fprintf( stderr, "Failure parsing one or more lines of world file.\n");
+        return;
+    }
 
     /*
      * Write out pixel scale, and tiepoint information.
@@ -372,6 +398,7 @@ char* stuff[] = {
 " -4 proj4_str	install GeoTIFF metadata from proj4 string",
 " -e file	install positioning info from ESRI Worldfile <file>",
 " -a		append to output instead of overwriting",
+" -8		write BigTIFF instead of default ClassicTIFF",
 " -o offset	set initial directory offset",
 " -p contig	pack samples contiguously (e.g. RGBRGB...)",
 " -p separate	store samples separately (e.g. RRR...GGG...BBB...)",
@@ -477,7 +504,7 @@ static struct cpTag {
 	{ TIFFTAG_DATETIME,		1, TIFF_ASCII },
 	{ TIFFTAG_ARTIST,		1, TIFF_ASCII },
 	{ TIFFTAG_HOSTCOMPUTER,		1, TIFF_ASCII },
-	{ TIFFTAG_WHITEPOINT,		1, TIFF_RATIONAL },
+	{ TIFFTAG_WHITEPOINT,		(uint16) -1,TIFF_RATIONAL },
 	{ TIFFTAG_PRIMARYCHROMATICITIES,(uint16) -1,TIFF_RATIONAL },
 	{ TIFFTAG_HALFTONEHINTS,	2, TIFF_SHORT },
 	{ TIFFTAG_BADFAXLINES,		1, TIFF_LONG },

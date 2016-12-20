@@ -80,7 +80,7 @@ GTIF *GTIFNewSimpleTags( void *tif )
 GTIF* GTIFNewWithMethods(void *tif, TIFFMethod* methods)
 {
     GTIF* gt=(GTIF*)0;
-    int count,bufcount,index;
+    int count,bufcount,nIndex;
     GeoKey *keyptr;
     pinfo_t *data;
     KeyEntry *entptr;
@@ -178,13 +178,13 @@ GTIF* GTIFNewWithMethods(void *tif, TIFFMethod* methods)
     keyptr = gt->gt_keys;
     gt->gt_keymin = MAX_KEYINDEX;
     gt->gt_keymax = 0;
-    for (index=1; index<=count; index++,entptr++)
+    for (nIndex=1; nIndex<=count; nIndex++,entptr++)
     {
         if (!ReadKey(gt, &tempData, entptr, ++keyptr))
             goto failure;
 			
         /* Set up the index (start at 1, since 0=unset) */
-        gt->gt_keyindex[entptr->ent_key] = index;		
+        gt->gt_keyindex[entptr->ent_key] = nIndex;		
     }
 
     if( tempData.tk_asciiParams != NULL )
@@ -215,36 +215,38 @@ static int ReadKey(GTIF* gt, TempKeyData* tempData,
                    KeyEntry* entptr, GeoKey* keyptr)
 {
     int offset,count;
-	
+
     keyptr->gk_key = entptr->ent_key;
     keyptr->gk_count = entptr->ent_count;
     count = entptr->ent_count;
     offset = entptr->ent_val_offset;
     if (gt->gt_keymin > keyptr->gk_key)  gt->gt_keymin=keyptr->gk_key;
     if (gt->gt_keymax < keyptr->gk_key)  gt->gt_keymax=keyptr->gk_key;
-	
+
     if (entptr->ent_location)
         keyptr->gk_type = (gt->gt_methods.type)(gt->gt_tif,entptr->ent_location);
     else
         keyptr->gk_type = (gt->gt_methods.type)(gt->gt_tif,GTIFF_GEOKEYDIRECTORY);
-	  
+
     switch (entptr->ent_location)
     {
         case GTIFF_LOCAL:
             /* store value into data value */
-            *(pinfo_t *)(&keyptr->gk_data) = entptr->ent_val_offset;
+            memcpy(&keyptr->gk_data, &(entptr->ent_val_offset), sizeof(pinfo_t));
             break;
         case GTIFF_GEOKEYDIRECTORY:
             keyptr->gk_data = (char *)(gt->gt_short+offset);
             if (gt->gt_nshorts < offset+count)
-                gt->gt_nshorts = offset+count;
+                return 0;
             break;
         case GTIFF_DOUBLEPARAMS:
             keyptr->gk_data = (char *)(gt->gt_double+offset);
             if (gt->gt_ndoubles < offset+count)
-                gt->gt_ndoubles = offset+count;
+                return 0;
             break;
         case GTIFF_ASCIIPARAMS:
+            if( tempData->tk_asciiParams == NULL )
+                return 0;
             if( offset + count == tempData->tk_asciiParamsLength + 1 
                 && count > 0 )
             {

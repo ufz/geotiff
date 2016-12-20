@@ -2,7 +2,7 @@
 
 m4_define([VERSION_MAJOR], [1])
 m4_define([VERSION_MINOR], [4])
-m4_define([VERSION_POINT], [0])
+m4_define([VERSION_POINT], [2])
 m4_define([GEOTIFF_VERSION],
           [VERSION_MAJOR.VERSION_MINOR.VERSION_POINT])
 
@@ -175,6 +175,7 @@ if test "${JPEG_CONFIG}" != "no" ; then
     if test "${JPEG_CONFIG}" = "yes" ; then
         if test -d ${with_jpeg}/include ; then
             JPEG_INC="-I$with_jpeg/include"
+            LIBS="-L$with_jpeg/lib $LIBS"
             AC_MSG_RESULT([using jpeg from $with_jpeg/include]) 
         fi
     fi
@@ -314,6 +315,9 @@ else
 
 fi
 AM_CONDITIONAL([CSV_IS_CONFIG], [test ! x$CSV_CONFIG = xno])
+
+
+AC_ARG_ENABLE(towgs84, [  --disable-towgs84       Disable WGS84 parameters for binary compatibility with pre-1.4.1], AC_DEFINE(GEO_NORMALIZE_DISABLE_TOWGS84))
 
 dnl #########################################################################
 dnl Doxygen settings

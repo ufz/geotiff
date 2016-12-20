@@ -135,7 +135,7 @@ static void PrintKey(GeoKey *key, GTIFPrintMethod print, void *aux)
 {
     char *data;
     geokey_t keyid = (geokey_t) key->gk_key;
-    int count = key->gk_count;
+    int count = (int) key->gk_count;
     int vals_now,i;
     pinfo_t *sptr;
     double *dptr;
@@ -180,7 +180,7 @@ static void PrintKey(GeoKey *key, GTIFPrintMethod print, void *aux)
                   message[out_char++] = ch;
 
               /* flush message if buffer full */
-              if( out_char >= sizeof(message)-3 )
+              if( (size_t)out_char >= sizeof(message)-3 )
               {
                   message[out_char] = '\0';
                   print(message,aux);
@@ -215,7 +215,10 @@ static void PrintKey(GeoKey *key, GTIFPrintMethod print, void *aux)
             print( GTIFValueName(keyid,*sptr), aux );
             print( "\n", aux );
         }
+        else if( sptr == NULL && count > 0 )
+            print( "****Corrupted data****\n", aux );
         else
+        {
             for (; count > 0; count-= vals_now)
             {
                 vals_now = count > 3? 3: count;
@@ -226,6 +229,7 @@ static void PrintKey(GeoKey *key, GTIFPrintMethod print, void *aux)
                 }
                 print("\n",aux);
             }
+        }
         break;
         
       default: 
@@ -324,7 +328,10 @@ static int ReadTag(GTIF *gt,GTIFReadMethod scan,void *aux)
         for (j=0;j<ncols;j++)
         {
             if (!sscanf(vptr,"%lg",dptr++))
+            {
+                _GTIFFree( data );
                 return StringError(vptr);
+            }
             FINDCHAR(vptr,' ');
             SKIPWHITE(vptr);
         }
@@ -348,11 +355,12 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
     short  *sptr;
     char name[1000];
     char type[20];
-    double data[100];
     double *dptr;
     char *vptr;
     int num;
     char message[2048];
+    int keycode;
+    int typecode;
 
     scan(message,aux); 
     if (!strncmp(message,FMT_KEYEND,8)) return 0;
@@ -365,15 +373,17 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
     if (!*vptr) return StringError(message);
     vptr+=2;
 
-    if( GTIFKeyCode(name) < 0 )
+    keycode = GTIFKeyCode(name);
+    if( keycode < 0 )
         return StringError(name);
     else
-        key = (geokey_t) GTIFKeyCode(name);
+        key = (geokey_t) keycode;
 
-    if( GTIFTypeCode(type) < 0 )
+    typecode = GTIFTypeCode(type);
+    if( typecode < 0 )
         return StringError(type);
     else
-        ktype = (tagtype_t) GTIFTypeCode(type);
+        ktype = (tagtype_t) typecode;
 
     /* skip white space */
     SKIPWHITE(vptr);
@@ -411,8 +421,11 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
                   cdata[out_char++] = *(vptr++);
           }
 
-          if( out_char < count-1 ) return StringError(message);
-          if( *vptr != '"' ) return StringError(message);
+          if( out_char < count-1 ||  *vptr != '"' )
+          {
+              _GTIFFree( cdata );
+              return StringError(message);
+          }
 
           cdata[count-1] = '\0';
           GTIFKeySet(gt,key,ktype,count,cdata);
@@ -420,8 +433,10 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
           _GTIFFree( cdata );
       }
       break;
-        
+
       case TYPE_DOUBLE: 
+      {
+        double data[100];
         outcount = count;
         for (dptr = data; count > 0; count-= vals_now)
         {
@@ -444,6 +459,7 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
         else
             GTIFKeySet(gt,key,ktype,outcount,data);
         break;
+      }
         
       case TYPE_SHORT: 
         if (count==1)
@@ -455,9 +471,9 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
         }
         else  /* multi-valued short - no such thing yet */
         {
-            sptr = (short *)data;
+            short data[100];
             outcount = count;
-            for (; count > 0; count-= vals_now)
+            for (sptr = data; count > 0; count-= vals_now)
             {
                 vals_now = count > 3? 3: count;
                 for (i=0; i<vals_now; i++,sptr++)
@@ -472,14 +488,15 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
                 if (vals_now<count)
                 {
                     scan(message,aux);
-                    vptr = message;
+                    /* FIXME: the following is dead assignment */
+                    /*vptr = message;*/
                 }
             }
-            GTIFKeySet(gt,key,ktype,outcount,sptr);			
+            GTIFKeySet(gt,key,ktype,outcount,sptr);
         }
         break;
-        
-      default: 
+
+      default:
         return -1;
     }
     return 1;
@@ -488,7 +505,11 @@ static int ReadKey(GTIF *gt, GTIFReadMethod scan, void *aux)
 
 static void DefaultRead(char *string, void *aux)
 {
-	/* Pretty boring */
-	fscanf((FILE *)aux,"%[^\n]\n",string);
+    /* Pretty boring */
+    int num_read;
+    num_read = fscanf((FILE *)aux, "%[^\n]\n", string);
+    if (num_read != 0) {
+      fprintf(stderr, "geo_print.c DefaultRead failed to read anything.\n");
+    }
 }
 

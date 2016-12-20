@@ -10,8 +10,8 @@
  *  notice accompanies any products derived therefrom.
  **********************************************************************/
 
-#ifndef __geotiff_h_
-#define __geotiff_h_
+#ifndef LIBGEOTIFF_GEOTIFF_H_
+#define LIBGEOTIFF_GEOTIFF_H_
 
 /**
  * \file geotiff.h
@@ -30,9 +30,9 @@
  */
 #define GvCurrentVersion   1
 
-#define LIBGEOTIFF_VERSION 1400
+#define LIBGEOTIFF_VERSION 1420
 
-#include "geo_config.h"
+#include <geo_config.h>
 #include "geokeys.h"
 
 /**********************************************************************
@@ -61,7 +61,7 @@ typedef struct _TIFFMethod TIFFMethod;
 typedef unsigned short tifftag_t;
 typedef unsigned short geocode_t;
 typedef int (*GTIFPrintMethod)(char *string, void *aux);
-typedef int (*GTIFReadMethod)(char *string, void *aux);
+typedef int (*GTIFReadMethod)(char *string, void *aux); // string 1024+ in size
 
 typedef enum {
    TYPE_BYTE=1,
@@ -120,4 +120,4 @@ int CPL_DLL    GTIFPCSToImage( GTIF *gtif, double *x, double *y );
 }
 #endif
 
-#endif /* __geotiff_h_ */
+#endif /* LIBGEOTIFF_GEOTIFF_H_ */

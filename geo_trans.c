@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: geo_trans.c 1568 2009-04-22 21:10:55Z warmerdam $
+ * $Id: geo_trans.c 2688 2015-11-22 22:38:17Z rouault $
  *
  * Project:  libgeotiff
  * Purpose:  Code to abstract translation between pixel/line and PCS
@@ -55,7 +55,7 @@ static int inv_geotransform( double *gt_in, double *gt_out )
 
     inv_det = 1.0 / det;
 
-    /* compute adjoint, and devide by determinate */
+    /* compute adjoint, and divide by determinate */
 
     gt_out[0] =  gt_in[4] * inv_det;
     gt_out[3] = -gt_in[3] * inv_det;
@@ -73,6 +73,7 @@ static int inv_geotransform( double *gt_in, double *gt_out )
 /*                       GTIFTiepointTranslate()                        */
 /************************************************************************/
 
+static
 int GTIFTiepointTranslate( int gcp_count, double * gcps_in, double * gcps_out,
                            double x_in, double y_in,
                            double *x_out, double *y_out )
