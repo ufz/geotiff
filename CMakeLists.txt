@@ -104,6 +104,12 @@ IF(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     ENDIF()
 ENDIF()
 
+if (MSVC OR CMAKE_CONFIGURATION_TYPES)
+  # For multi-config systems and for Visual Studio, the debug versions
+  # of the libraries have a _d suffix.
+  set (CMAKE_DEBUG_POSTFIX _d)
+endif ()
+
 # Check required standard headers
 INCLUDE(CheckIncludeFiles)
 CHECK_INCLUDE_FILES(stdio.h HAVE_STDIO_H)
@@ -407,11 +413,6 @@ SET(XTIFF_SOURCES libxtiff/xtiff.c)
 # NOTE: Did not put XTIFF_SOURCES in static lib because libxtiff.a is written out
 #       currently.
 #---
-if (MSVC OR CMAKE_CONFIGURATION_TYPES)
-  # For multi-config systems and for Visual Studio, the debug versions
-  # of the libraries have a _d suffix.
-  set (CMAKE_DEBUG_POSTFIX _d)
-endif ()
 
 # libgeotiff library
 ADD_LIBRARY(${GEOTIFF_LIBRARY_TARGET}
